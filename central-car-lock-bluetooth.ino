@@ -1,7 +1,7 @@
 //*****************************************************************************
 // File Name:   central-car-lock-bluetooth.ino
 // Author:      Pavlo Novitskyi
-// Project:     Car central lock based on the Bluetooth technology
+// Project:     Development of a car central lock based on the Bluetooth technology
 // Compiler:    Arduino IDE Ver 1.8.12 with ESP32 plugin
 // Target:      ESP32 Dev Module
 //*****************************************************************************
@@ -26,7 +26,7 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
       /*
         Затримка, яка знадобиться для паузи між змінами положень реле
       */
-      const int SWITCHING_DELAY = 1000;
+      const int SWITCHING_DELAY = 500;
       
       /*
         Конфігураційні ідентифікатори для функціонування Bluetooth
@@ -42,15 +42,15 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
       */
       const std::string TURN_ON_TRIGGER = "ON";
       const std::string TURN_OFF_TRIGGER = "OFF";
-  
-    private: void permissionRelayOff() {
-      digitalWrite(PERMISSION_RELAY, OFF);
-      delay(SWITCHING_DELAY);
-    }
     
     private: void permissionRelayOn() {
-      digitalWrite(PERMISSION_RELAY, OFF);
+      digitalWrite(PERMISSION_RELAY, ON);
       delay(SWITCHING_DELAY);
+    }
+
+    private: void permissionRelayOff() {
+      delay(SWITCHING_DELAY);
+      digitalWrite(PERMISSION_RELAY, OFF);
     }
     
     /*
@@ -97,20 +97,26 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
       /*
         Змінюємо полярність реле на (-) та закриваємо замок
       */
-      permissionRelayOff();
+      permissionRelayOn();
+      digitalWrite(POLARITY_CHANGE_RELAY_1, ON);
+      digitalWrite(POLARITY_CHANGE_RELAY_2, ON);
+      delay(SWITCHING_DELAY);
       digitalWrite(POLARITY_CHANGE_RELAY_1, OFF);
       digitalWrite(POLARITY_CHANGE_RELAY_2, OFF);
-      permissionRelayOn();
+      permissionRelayOff();
     }
     
     public: void carUnlock() {
       /*
         Змінюємо полярність реле на (+) та відкриваємо замок
       */
-      permissionRelayOff();
+      permissionRelayOn();
+      digitalWrite(POLARITY_CHANGE_RELAY_1, OFF);
+      digitalWrite(POLARITY_CHANGE_RELAY_2, OFF);
+      delay(SWITCHING_DELAY);
       digitalWrite(POLARITY_CHANGE_RELAY_1, ON);
       digitalWrite(POLARITY_CHANGE_RELAY_2, ON);
-      permissionRelayOn();
+      permissionRelayOff();
     }
 
     void onWrite(BLECharacteristic *carLockBleChar) {
@@ -120,11 +126,11 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
          Bluetooth пристрою. Якщо вони відповідають прописаним 
          умовам, буде виконуватись відкриття чи закриття замка
       */
-      if (value == TURN_ON_TRIGGER) {
+      if (value == TURN_OFF_TRIGGER) {
         carLock();
       }
 
-      if (value == TURN_OFF_TRIGGER) {
+      if (value == TURN_ON_TRIGGER) {
         carUnlock();
       }
     }
