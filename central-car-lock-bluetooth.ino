@@ -26,12 +26,11 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
       /*
         Затримка, яка знадобиться для паузи між змінами положень реле
       */
-      const int SWITCHING_DELAY = 500;
+      const int SWITCHING_DELAY = 200;
       
       /*
         Конфігураційні ідентифікатори для функціонування Bluetooth
       */
-      
       const std::string BLUETOOTH_DEVICE_NAME = "Car Lock";
       const std::string BLUETOOTH_SERVICE_UUID = "641862ac-9bdc-43d1-a2ba-2dca6d9ac892";
       const std::string BLUETOOTH_CHARACTERISTIC_UUID = "e220ff7f-5d58-4dc6-929b-367de4026d32";
@@ -42,17 +41,6 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
       */
       const std::string TURN_ON_TRIGGER = "ON";
       const std::string TURN_OFF_TRIGGER = "OFF";
-    
-    private: void permissionRelayOn() {
-      digitalWrite(PERMISSION_RELAY, ON);
-      delay(SWITCHING_DELAY);
-    }
-
-    private: void permissionRelayOff() {
-      delay(SWITCHING_DELAY);
-      digitalWrite(PERMISSION_RELAY, OFF);
-    }
-    
     /*
       Оголошуємо виходи на піни трьох реле, двоє з яких 
       відповідаються за зміну полярності на замковому приводі,
@@ -63,6 +51,33 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
       pinMode(PERMISSION_RELAY, OUTPUT);
       pinMode(POLARITY_CHANGE_RELAY_1, OUTPUT);
       pinMode(POLARITY_CHANGE_RELAY_2, OUTPUT);
+    }
+
+    private: void permissionRelayOff() {
+      digitalWrite(PERMISSION_RELAY, OFF);
+      delay(SWITCHING_DELAY);
+    }
+    
+    private: void permissionRelayOn() {
+      delay(SWITCHING_DELAY);
+      digitalWrite(PERMISSION_RELAY, ON);
+    }
+    
+    /*
+      Оголошуємо командe, що буде виконувати зміну полярності на релейних
+      пристроях та закривати чи відкривати замковий механізм відповідно
+    */    
+    public: void carLockChangeState() {
+      /*
+        Змінюємо полярність реле та відкриваємо чи закриваємо замок
+      */
+      permissionRelayOn();
+      digitalWrite(POLARITY_CHANGE_RELAY_1, ON);
+      digitalWrite(POLARITY_CHANGE_RELAY_2, ON);
+      delay(SWITCHING_DELAY);
+      digitalWrite(POLARITY_CHANGE_RELAY_1, OFF);
+      digitalWrite(POLARITY_CHANGE_RELAY_2, OFF);
+      permissionRelayOff();
     }
     
     /*
@@ -88,38 +103,12 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
       BLEAdvertising *carLockBleAd = carLockBleServer -> getAdvertising();
       carLockBleAd -> start();
     }
-    
-    /*
-      Оголошуємо команди, що будуть виконувати зміну полярності на релейних
-      пристроях та закривати чи відкривати замковий механізм відповідно
-    */
-    public: void carLock() {
-      /*
-        Змінюємо полярність реле на (-) та закриваємо замок
-      */
-      permissionRelayOn();
-      digitalWrite(POLARITY_CHANGE_RELAY_1, ON);
-      digitalWrite(POLARITY_CHANGE_RELAY_2, ON);
-      delay(SWITCHING_DELAY);
-      digitalWrite(POLARITY_CHANGE_RELAY_1, OFF);
-      digitalWrite(POLARITY_CHANGE_RELAY_2, OFF);
-      permissionRelayOff();
-    }
-    
-    public: void carUnlock() {
-      /*
-        Змінюємо полярність реле на (+) та відкриваємо замок
-      */
-      permissionRelayOn();
-      digitalWrite(POLARITY_CHANGE_RELAY_1, OFF);
-      digitalWrite(POLARITY_CHANGE_RELAY_2, OFF);
-      delay(SWITCHING_DELAY);
-      digitalWrite(POLARITY_CHANGE_RELAY_1, ON);
-      digitalWrite(POLARITY_CHANGE_RELAY_2, ON);
-      permissionRelayOff();
+
+    void onConnect(BLEClient* pclient) {
+      
     }
 
-    void onWrite(BLECharacteristic *carLockBleChar) {
+    private: void onWrite(BLECharacteristic *carLockBleChar) {
       std::string value = carLockBleChar -> getValue();
       /*
          Для роботи замка перевіряємо дані отримані з підключеного
@@ -127,14 +116,15 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
          умовам, буде виконуватись відкриття чи закриття замка
       */
       if (value == TURN_OFF_TRIGGER) {
-        carLock();
+        carLockChangeState();
       }
 
       if (value == TURN_ON_TRIGGER) {
-        carUnlock();
+        carLockChangeState();
       }
     }
 };
+
 
 void loop() {}
 
@@ -147,5 +137,5 @@ void setup() {
   */
   carLockSystem.initRelayPins();
   carLockSystem.initBluetoothServer();
-  carLockSystem.carLock();
+  carLockSystem.carLockChangeState();
 }
