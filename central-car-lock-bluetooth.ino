@@ -41,11 +41,12 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
       */
       const std::string TURN_ON_TRIGGER = "ON";
       const std::string TURN_OFF_TRIGGER = "OFF";
+      
     /*
-      Оголошуємо виходи на піни трьох реле, двоє з яких 
-      відповідаються за зміну полярності на замковому приводі,
-      а третє реагує на подання струму та пропускає його далі, щоб 
-      дозволити зреагувати цим двом реле на цю зміну і змінити свій стан
+      Оголошуємо виходи за якими будуть з'єднані три реле, двоє з яких 
+      відповідають за зміну полярності на замковому приводі, а третє
+      реагує на подання струму та пропускає його далі, щоб дозволити 
+      зреагувати цим двом реле на цю зміну і змінити свій стан
     */
     public: void initRelayPins() {
       pinMode(PERMISSION_RELAY, OUTPUT);
@@ -64,7 +65,7 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
     }
     
     /*
-      Оголошуємо командe, що буде виконувати зміну полярності на релейних
+      Оголошуємо команди, що буде виконувати зміну полярності на релейних
       пристроях та закривати чи відкривати замковий механізм відповідно
     */    
     public: void carLockChangeState() {
@@ -104,10 +105,6 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
       carLockBleAd -> start();
     }
 
-    void onConnect(BLEClient* pclient) {
-      
-    }
-
     private: void onWrite(BLECharacteristic *carLockBleChar) {
       std::string value = carLockBleChar -> getValue();
       /*
@@ -125,15 +122,14 @@ class CarLockSystemCallbacks: public BLECharacteristicCallbacks {
     }
 };
 
-
 void loop() {}
 
 void setup() {
   CarLockSystemCallbacks carLockSystem;
   /*
     виконати команди на визначення керуючих виводів, 
-    зачинення дверей на початку роботи системи та
-    ініціалізації Bluetooth LE Server
+    зачинення/відкриття дверей на початку роботи 
+    системи та ініціалізація Bluetooth LE Server
   */
   carLockSystem.initRelayPins();
   carLockSystem.initBluetoothServer();
